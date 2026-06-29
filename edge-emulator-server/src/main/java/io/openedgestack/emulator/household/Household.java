@@ -7,7 +7,7 @@ import java.time.Instant;
 public record Household(
         @NotBlank String householdId,
         @NotBlank String name,
-        @NotBlank String region,
+        String region,
         Instant createdAt
 ) {
     public Household {

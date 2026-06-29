@@ -37,4 +37,10 @@ public class HouseholdService {
                 .sorted(Comparator.comparing(Household::householdId))
                 .toList();
     }
+
+    public void delete(String householdId) {
+        if (!stateStore.removeHousehold(householdId)) {
+            throw new NotFoundException("Household " + householdId + " was not found");
+        }
+    }
 }
