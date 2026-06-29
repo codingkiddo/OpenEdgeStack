@@ -33,6 +33,10 @@ public class StateStore {
         return List.copyOf(households.values());
     }
 
+    public boolean removeHousehold(String householdId) {
+        return households.remove(householdId) != null;
+    }
+
     public boolean addDevice(Device device) {
         return devices.putIfAbsent(device.deviceId(), device) == null;
     }
