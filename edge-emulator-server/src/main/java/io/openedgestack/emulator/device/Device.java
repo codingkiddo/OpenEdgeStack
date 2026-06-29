@@ -9,9 +9,9 @@ public record Device(
         @NotBlank String deviceId,
         @NotBlank String householdId,
         @NotNull DeviceType type,
-        @NotBlank String vendor,
-        @NotBlank String model,
-        @NotBlank String firmwareVersion,
+        String vendor,
+        String model,
+        String firmwareVersion,
         DeviceStatus status,
         Instant createdAt
 ) {

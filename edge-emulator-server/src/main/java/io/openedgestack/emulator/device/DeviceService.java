@@ -36,6 +36,12 @@ public class DeviceService {
         return device;
     }
 
+    public List<Device> list() {
+        return stateStore.devices().stream()
+                .sorted(Comparator.comparing(Device::deviceId))
+                .toList();
+    }
+
     public List<Device> listByHousehold(String householdId) {
         householdService.get(householdId);
         return stateStore.devices().stream()

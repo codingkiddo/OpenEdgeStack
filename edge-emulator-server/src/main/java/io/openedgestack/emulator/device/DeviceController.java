@@ -33,6 +33,11 @@ class DeviceController {
         return deviceService.get(deviceId);
     }
 
+    @GetMapping("/devices")
+    List<Device> list() {
+        return deviceService.list();
+    }
+
     @GetMapping("/households/{householdId}/devices")
     List<Device> listByHousehold(@PathVariable String householdId) {
         return deviceService.listByHousehold(householdId);
