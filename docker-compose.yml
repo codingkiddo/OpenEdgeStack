@@ -1,0 +1,6 @@
+services:
+  open-edge-stack:
+    build:
+      context: ./edge-emulator-server
+    ports:
+      - "8080:8080"
