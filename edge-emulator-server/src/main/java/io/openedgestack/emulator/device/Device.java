@@ -16,6 +16,7 @@ public record Device(
         Instant createdAt
 ) {
     public Device {
+        // Keep demo devices usable even when callers omit operational metadata.
         if (status == null) {
             status = DeviceStatus.ONLINE;
         }

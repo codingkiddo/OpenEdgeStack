@@ -21,6 +21,7 @@ public class DeviceService {
     }
 
     public Device register(Device device) {
+        // Devices are always attached to a known household in the emulator state.
         householdService.get(device.householdId());
         if (!stateStore.addDevice(device)) {
             throw new ConflictException("Device " + device.deviceId() + " already exists");
@@ -38,6 +39,7 @@ public class DeviceService {
 
     public List<Device> list() {
         return stateStore.devices().stream()
+                // Stable ordering keeps API responses and tests deterministic.
                 .sorted(Comparator.comparing(Device::deviceId))
                 .toList();
     }
@@ -54,6 +56,7 @@ public class DeviceService {
         if (!stateStore.removeDevice(deviceId)) {
             throw new NotFoundException("Device " + deviceId + " was not found");
         }
+        // Device-scoped emulator state should not survive device removal.
         stateStore.removeDeviceState(deviceId);
     }
 }
