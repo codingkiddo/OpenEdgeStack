@@ -75,18 +75,39 @@ public class TelemetryService {
     }
 
     /**
+     * Returns the most recent Wi-Fi sample for a device, or throws if none exists yet.
+     *
+     * <p>Exposed via {@code GET /devices/{deviceId}/telemetry/wifi/latest}.
+     * The scoring path uses the same underlying {@link #latestWifi(String)} but tolerates
+     * an empty result; this method surfaces a clear 404 instead.
+     *
+     * @param deviceId the device to query
+     * @return the latest sample ordered by timestamp
+     * @throws io.openedgestack.emulator.common.NotFoundException if the device does not exist
+     *         or no telemetry has been ingested yet
+     */
+    public WifiTelemetry getLatestWifi(String deviceId) {
+        return latestWifi(deviceId).orElseThrow(
+                () -> new io.openedgestack.emulator.common.NotFoundException(
+                        "No Wi-Fi telemetry found for device " + deviceId));
+    }
+
+    /**
      * Guards against physically impossible or nonsensical telemetry values.
      * Bean Validation handles missing fields; this method handles out-of-range values.
      */
     private void validateRanges(WifiTelemetry telemetry) {
+        if (telemetry.rssi() >= 0) {
+            throw new IllegalArgumentException("rssi must be negative (received " + telemetry.rssi() + ")");
+        }
+        if (telemetry.latencyMs() < 0) {
+            throw new IllegalArgumentException("latencyMs must be non-negative");
+        }
         if (telemetry.packetLossPercent() < 0 || telemetry.packetLossPercent() > 100) {
             throw new IllegalArgumentException("packetLossPercent must be between 0 and 100");
         }
         if (telemetry.retryRatePercent() < 0 || telemetry.retryRatePercent() > 100) {
             throw new IllegalArgumentException("retryRatePercent must be between 0 and 100");
-        }
-        if (telemetry.latencyMs() < 0) {
-            throw new IllegalArgumentException("latencyMs must be non-negative");
         }
     }
 }

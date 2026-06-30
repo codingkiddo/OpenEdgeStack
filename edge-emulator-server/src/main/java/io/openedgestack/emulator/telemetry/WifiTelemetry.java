@@ -13,7 +13,7 @@ import java.time.Instant;
  * {@link TelemetryService#ingestWifi(WifiTelemetry)}.
  *
  * @param deviceId           the reporting device's ID (required)
- * @param rssi               received signal strength indicator in dBm, typically –30 to –90
+ * @param rssi               received signal strength indicator in dBm; must be negative (typically –30 to –90)
  * @param snr                signal-to-noise ratio in dB
  * @param latencyMs          round-trip latency in milliseconds; must be ≥ 0
  * @param packetLossPercent  percentage of lost packets; must be in [0, 100]
