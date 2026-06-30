@@ -11,6 +11,24 @@ import org.springframework.stereotype.Service;
 import java.util.ArrayList;
 import java.util.List;
 
+/**
+ * Computes quality-of-experience (QoE) and security risk scores for devices.
+ *
+ * <h2>QoE scoring</h2>
+ * <p>Starts at 100 and deducts points based on the device's latest Wi-Fi telemetry:
+ * <ul>
+ *   <li>RSSI: −25 (weak, &lt; −75 dBm) / −10 (moderate, &lt; −65 dBm)</li>
+ *   <li>Latency: −25 (&gt; 150 ms) / −10 (&gt; 80 ms)</li>
+ *   <li>Packet loss: −20 (&gt; 5%) / −8 (&gt; 1%)</li>
+ *   <li>Retry rate: −20 (&gt; 20%) / −8 (&gt; 10%)</li>
+ * </ul>
+ * <p>The final score is clamped to [0, 100]. If no telemetry exists, a neutral
+ * score of 50 / {@link ScoreGrade#FAIR} is returned.
+ *
+ * <h2>Risk scoring</h2>
+ * <p>Counts blocked DNS queries in the device's history and multiplies by 20,
+ * capped at 100. A device with no blocked queries scores 0 / {@link ScoreGrade#LOW}.
+ */
 @Service
 public class ScoringService {
 
@@ -24,15 +42,25 @@ public class ScoringService {
         this.deviceService = deviceService;
     }
 
+    /**
+     * Computes the QoE score for a device from its latest Wi-Fi telemetry.
+     *
+     * @param deviceId the device to score
+     * @return a {@link QoeScore} with a numeric score, grade, and per-metric reasons
+     * @throws io.openedgestack.emulator.common.NotFoundException if the device does not exist
+     */
     public QoeScore qoeScore(String deviceId) {
+        // latestWifi validates the device exists; returns empty if no telemetry yet.
         WifiTelemetry telemetry = telemetryService.latestWifi(deviceId).orElse(null);
         if (telemetry == null) {
+            // No data — return a neutral FAIR score rather than failing.
             return new QoeScore(deviceId, 50, ScoreGrade.FAIR, List.of("No Wi-Fi telemetry available; returning neutral score"));
         }
 
         int score = 100;
         List<String> reasons = new ArrayList<>();
 
+        // ── RSSI deduction ────────────────────────────────────────────────────
         if (telemetry.rssi() < -75) {
             score -= 25;
             reasons.add("Weak RSSI");
@@ -43,6 +71,7 @@ public class ScoringService {
             reasons.add("RSSI is acceptable");
         }
 
+        // ── Latency deduction ─────────────────────────────────────────────────
         if (telemetry.latencyMs() > 150) {
             score -= 25;
             reasons.add("High latency");
@@ -53,6 +82,7 @@ public class ScoringService {
             reasons.add("Latency is acceptable");
         }
 
+        // ── Packet loss deduction ─────────────────────────────────────────────
         if (telemetry.packetLossPercent() > 5) {
             score -= 20;
             reasons.add("High packet loss");
@@ -61,6 +91,7 @@ public class ScoringService {
             reasons.add("Moderate packet loss");
         }
 
+        // ── Retry rate deduction ──────────────────────────────────────────────
         if (telemetry.retryRatePercent() > 20) {
             score -= 20;
             reasons.add("High retry rate");
@@ -69,14 +100,26 @@ public class ScoringService {
             reasons.add("Moderate retry rate");
         }
 
+        // Clamp to valid range in case multiple deductions push the score below 0.
         score = Math.max(0, Math.min(100, score));
         return new QoeScore(deviceId, score, qoeGrade(score), reasons);
     }
 
+    /**
+     * Computes the security risk score for a device from its DNS decision history.
+     *
+     * @param deviceId the device to score
+     * @return a {@link RiskScore} with a numeric score, grade, and reason
+     * @throws io.openedgestack.emulator.common.NotFoundException if the device does not exist
+     */
     public RiskScore riskScore(String deviceId) {
         deviceService.get(deviceId);
         List<DnsDecision> decisions = stateStore.dnsDecisionsForDevice(deviceId);
+
+        // Count only BLOCK decisions — ALLOW decisions don't increase risk.
         long blockedCount = decisions.stream().filter(decision -> decision.action() == DnsAction.BLOCK).count();
+
+        // Each blocked query adds 20 points to the risk score, capped at 100.
         int score = Math.toIntExact(Math.min(100, blockedCount * 20));
 
         List<String> reasons = new ArrayList<>();
@@ -89,26 +132,18 @@ public class ScoringService {
         return new RiskScore(deviceId, score, riskGrade(score), reasons);
     }
 
+    /** Maps a QoE numeric score to its categorical grade. */
     private ScoreGrade qoeGrade(int score) {
-        if (score >= 90) {
-            return ScoreGrade.EXCELLENT;
-        }
-        if (score >= 75) {
-            return ScoreGrade.GOOD;
-        }
-        if (score >= 50) {
-            return ScoreGrade.FAIR;
-        }
+        if (score >= 90) return ScoreGrade.EXCELLENT;
+        if (score >= 75) return ScoreGrade.GOOD;
+        if (score >= 50) return ScoreGrade.FAIR;
         return ScoreGrade.POOR;
     }
 
+    /** Maps a risk numeric score to its categorical grade. */
     private ScoreGrade riskGrade(int score) {
-        if (score >= 70) {
-            return ScoreGrade.HIGH;
-        }
-        if (score >= 30) {
-            return ScoreGrade.MEDIUM;
-        }
+        if (score >= 70) return ScoreGrade.HIGH;
+        if (score >= 30) return ScoreGrade.MEDIUM;
         return ScoreGrade.LOW;
     }
 }

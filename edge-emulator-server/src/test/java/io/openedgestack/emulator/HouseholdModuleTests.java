@@ -14,6 +14,13 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
+/**
+ * MockMvc integration tests for the Household Registry API.
+ *
+ * <p>Covers the full HTTP layer: request parsing, Bean Validation, service logic,
+ * and error serialisation. Each test method is isolated by the {@code @BeforeEach}
+ * state reset in {@link ModuleTestSupport}.
+ */
 class HouseholdModuleTests extends ModuleTestSupport {
 
     @Test
