@@ -14,6 +14,14 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
+/**
+ * MockMvc integration tests for the Device Registry API.
+ *
+ * <p>Verifies all five endpoints including field defaulting, validation errors,
+ * household-existence enforcement, duplicate detection, household-scoped listing,
+ * and deletion. Each test is isolated via the {@code @BeforeEach} state reset
+ * in {@link ModuleTestSupport}.
+ */
 class DeviceModuleTests extends ModuleTestSupport {
 
     @Test

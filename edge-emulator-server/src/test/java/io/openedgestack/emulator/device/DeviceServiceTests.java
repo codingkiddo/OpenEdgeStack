@@ -13,11 +13,21 @@ import java.time.Instant;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
+/**
+ * Unit tests for {@link DeviceService}, exercising business logic directly
+ * without the HTTP layer.
+ *
+ * <p>A fresh {@link StateStore} and real {@link HouseholdService} are wired up
+ * in {@code @BeforeEach} — no mocks — so the tests exercise actual state
+ * transitions. Two households ({@code home-001}, {@code home-002}) are pre-seeded
+ * as test fixtures.
+ */
 class DeviceServiceTests {
 
     private StateStore stateStore;
     private DeviceService deviceService;
 
+    /** Creates a clean store with two pre-seeded households for each test. */
     @BeforeEach
     void setUp() {
         stateStore = new StateStore();
