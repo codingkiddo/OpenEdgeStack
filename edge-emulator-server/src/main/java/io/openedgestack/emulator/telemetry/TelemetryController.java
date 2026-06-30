@@ -2,6 +2,7 @@ package io.openedgestack.emulator.telemetry;
 
 import jakarta.validation.Valid;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestParam;
@@ -18,8 +19,9 @@ import java.util.List;
  *
  * <p>Endpoints:
  * <ul>
- *   <li>{@code POST /telemetry/wifi}               — ingest a Wi-Fi sample for a device</li>
- *   <li>{@code GET  /telemetry/wifi?deviceId=...}  — retrieve all samples for a device</li>
+ *   <li>{@code POST /telemetry/wifi}                             — ingest a Wi-Fi sample for a device</li>
+ *   <li>{@code GET  /telemetry/wifi?deviceId=...}                — retrieve all samples for a device</li>
+ *   <li>{@code GET  /devices/{deviceId}/telemetry/wifi/latest}   — retrieve the most recent sample</li>
  * </ul>
  */
 @RestController
@@ -33,7 +35,7 @@ class TelemetryController {
 
     /**
      * Ingests a single Wi-Fi telemetry sample.
-     * Returns 200 OK with an {@link TelemetryIngestResponse} on success,
+     * Returns 200 OK with a {@link TelemetryIngestResponse} on success,
      * 400 Bad Request if fields are missing or out of range,
      * or 404 Not Found if the device does not exist.
      */
@@ -49,5 +51,14 @@ class TelemetryController {
     @GetMapping("/telemetry/wifi")
     List<WifiTelemetry> listWifi(@RequestParam String deviceId) {
         return telemetryService.listWifi(deviceId);
+    }
+
+    /**
+     * Returns the single most recent Wi-Fi telemetry sample for the device (highest timestamp).
+     * Returns 404 Not Found if the device does not exist or no telemetry has been ingested yet.
+     */
+    @GetMapping("/devices/{deviceId}/telemetry/wifi/latest")
+    WifiTelemetry latestWifi(@PathVariable String deviceId) {
+        return telemetryService.getLatestWifi(deviceId);
     }
 }
