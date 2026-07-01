@@ -22,12 +22,15 @@ import java.util.List;
  *   <li>Packet loss: −20 (&gt; 5%) / −8 (&gt; 1%)</li>
  *   <li>Retry rate: −20 (&gt; 20%) / −8 (&gt; 10%)</li>
  * </ul>
- * <p>The final score is clamped to [0, 100]. If no telemetry exists, a neutral
- * score of 50 / {@link ScoreGrade#FAIR} is returned.
+ * <p>Grade thresholds: {@link ScoreGrade#GOOD} (≥ 75), {@link ScoreGrade#FAIR} (≥ 40),
+ * {@link ScoreGrade#POOR} (&lt; 40). The final score is clamped to [0, 100].
+ * If no telemetry has been ingested, score 0 / {@link ScoreGrade#UNKNOWN} is returned.
  *
  * <h2>Risk scoring</h2>
  * <p>Counts blocked DNS queries in the device's history and multiplies by 20,
- * capped at 100. A device with no blocked queries scores 0 / {@link ScoreGrade#LOW}.
+ * capped at 100. Grade thresholds: {@link ScoreGrade#HIGH} (≥ 70),
+ * {@link ScoreGrade#MEDIUM} (≥ 30), {@link ScoreGrade#LOW} (&lt; 30).
+ * A device with no blocked queries scores 0 / {@link ScoreGrade#LOW}.
  */
 @Service
 public class ScoringService {
@@ -53,8 +56,8 @@ public class ScoringService {
         // latestWifi validates the device exists; returns empty if no telemetry yet.
         WifiTelemetry telemetry = telemetryService.latestWifi(deviceId).orElse(null);
         if (telemetry == null) {
-            // No data — return a neutral FAIR score rather than failing.
-            return new QoeScore(deviceId, 50, ScoreGrade.FAIR, List.of("No Wi-Fi telemetry available; returning neutral score"));
+            // No telemetry ingested yet — cannot compute a meaningful score.
+            return new QoeScore(deviceId, 0, ScoreGrade.UNKNOWN, List.of("No Wi-Fi telemetry available"));
         }
 
         int score = 100;
@@ -89,6 +92,8 @@ public class ScoringService {
         } else if (telemetry.packetLossPercent() > 1) {
             score -= 8;
             reasons.add("Moderate packet loss");
+        } else {
+            reasons.add("Packet loss is acceptable");
         }
 
         // ── Retry rate deduction ──────────────────────────────────────────────
@@ -98,6 +103,8 @@ public class ScoringService {
         } else if (telemetry.retryRatePercent() > 10) {
             score -= 8;
             reasons.add("Moderate retry rate");
+        } else {
+            reasons.add("Retry rate is acceptable");
         }
 
         // Clamp to valid range in case multiple deductions push the score below 0.
@@ -132,11 +139,14 @@ public class ScoringService {
         return new RiskScore(deviceId, score, riskGrade(score), reasons);
     }
 
-    /** Maps a QoE numeric score to its categorical grade. */
+    /**
+     * Maps a QoE numeric score to its categorical grade.
+     * Grades: GOOD (≥ 75), FAIR (≥ 40), POOR (< 40).
+     * UNKNOWN is returned directly by the caller when no telemetry exists.
+     */
     private ScoreGrade qoeGrade(int score) {
-        if (score >= 90) return ScoreGrade.EXCELLENT;
         if (score >= 75) return ScoreGrade.GOOD;
-        if (score >= 50) return ScoreGrade.FAIR;
+        if (score >= 40) return ScoreGrade.FAIR;
         return ScoreGrade.POOR;
     }
 
