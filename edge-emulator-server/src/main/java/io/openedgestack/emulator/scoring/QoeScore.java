@@ -6,8 +6,7 @@ import java.util.List;
  * Quality-of-Experience score for a device, derived from its latest Wi-Fi telemetry.
  *
  * <p>The score ranges from 0 (worst) to 100 (best). If no telemetry has been
- * ingested, a neutral score of 50 / {@link ScoreGrade#FAIR} is returned with an
- * explanatory reason.
+ * ingested, score 0 / {@link ScoreGrade#UNKNOWN} is returned with an explanatory reason.
  *
  * @param deviceId the device that was scored
  * @param score    numeric quality score in [0, 100]
